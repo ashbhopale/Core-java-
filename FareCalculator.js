@@ -1,108 +1,68 @@
-import { useState } from "react";
-import { Loader } from "@googlemaps/js-api-loader";
-import { Car } from "lucide-react";
-import { motion } from "framer-motion";
+// FareCalculator.js import { useState } from 'react';
 
-export default function FareCalculator() {
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
-  const [distance, setDistance] = useState(0);
-  const [fare, setFare] = useState(0);
-  const [vehicleType, setVehicleType] = useState("4-seater");
+export default function FareCalculator() { const [startLocation, setStartLocation] = useState(''); const [endLocation, setEndLocation] = useState(''); const [vehicleType, setVehicleType] = useState(null); const [fare, setFare] = useState(null); const [loading, setLoading] = useState(false); const [error, setError] = useState('');
 
-  const calculateDistance = () => {
-    const loader = new Loader({
-      apiKey: "AIzaSyDVCneCjU0XDCmpJj01I8I0tGx1_wcq5rE",
-      version: "weekly",
-      libraries: ["places"]
-    });
+const ratePerKm = 12;
 
-    loader.load().then(() => {
-      const service = new window.google.maps.DistanceMatrixService();
-      service.getDistanceMatrix(
-        {
-          origins: [start],
-          destinations: [end],
-          travelMode: window.google.maps.TravelMode.DRIVING,
-        },
-        (response, status) => {
-          if (status === "OK") {
-            const distInMeters = response.rows[0].elements[0].distance.value;
-            const distInKm = distInMeters / 1000;
-            setDistance(distInKm);
-            setFare(distInKm * 12);
-          } else {
-            alert("Distance calculation failed: " + status);
-          }
-        }
-      );
-    });
-  };
+const vehicleTypes = { 4: '4-seater', 7: '7-seater', 12: '12-seater' };
 
-  return (
-    <motion.div className="min-h-screen bg-gradient-to-br from-yellow-100 to-orange-200 p-4">
-      <h1 className="text-4xl font-bold text-center text-orange-800 mb-6">
-        जय भोले Fare Calculator
-      </h1>
+const getCoordinates = async (place) => { const response = await fetch(https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(place)}); const data = await response.json(); if (data && data.length > 0) { return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) }; } else { throw new Error(स्थान सापडले नाही: ${place}); } };
 
-      <div className="max-w-xl mx-auto bg-white p-6 rounded-2xl shadow-2xl space-y-6">
-        <div>
-          <label className="text-lg">प्रारंभ ठिकाण:</label>
-          <input
-            type="text"
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-            placeholder="उदाहरण: पुणे स्टेशन"
-            className="w-full mt-1 p-2 border rounded"
-          />
-        </div>
+const calculateDistance = (coord1, coord2) => { const R = 6371; // Earth radius in km const dLat = (coord2.lat - coord1.lat) * Math.PI / 180; const dLon = (coord2.lon - coord1.lon) * Math.PI / 180; const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(coord1.lat * Math.PI / 180) * Math.cos(coord2.lat * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2); const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); return R * c; // Distance in km };
 
-        <div>
-          <label className="text-lg">शेवटचे ठिकाण:</label>
-          <input
-            type="text"
-            value={end}
-            onChange={(e) => setEnd(e.target.value)}
-            placeholder="उदाहरण: शिवाजीनगर"
-            className="w-full mt-1 p-2 border rounded"
-          />
-        </div>
+const handleCalculate = async () => { setFare(null); setError(''); setLoading(true); try { const coord1 = await getCoordinates(startLocation); const coord2 = await getCoordinates(endLocation); const distance = calculateDistance(coord1, coord2); const totalFare = Math.round(distance * ratePerKm); setFare(totalFare); } catch (err) { setError(err.message); } setLoading(false); };
 
-        <div>
-          <label className="text-lg">गाडीचा प्रकार:</label>
-          <div className="grid grid-cols-3 gap-2 mt-1">
-            {["4-seater", "7-seater", "12-seater"].map((type) => (
-              <button
-                key={type}
-                onClick={() => setVehicleType(type)}
-                className={
-                  vehicleType === type
-                    ? "bg-orange-700 text-white p-2 rounded"
-                    : "border p-2 rounded"
-                }
-              >
-                <Car className="inline-block mr-1" size={16} /> {type}
-              </button>
-            ))}
-          </div>
-        </div>
+return ( <div className="max-w-md mx-auto p-4 space-y-4"> <h1 className="text-2xl font-bold text-center">जय भोले Fare Calculator</h1>
 
+<div>
+    <label>प्रारंभ ठिकाण:</label>
+    <input
+      type="text"
+      value={startLocation}
+      onChange={(e) => setStartLocation(e.target.value)}
+      className="w-full p-2 border rounded"
+      placeholder="उदाहरण: पुणे स्टेशन"
+    />
+  </div>
+
+  <div>
+    <label>शेवटचे ठिकाण:</label>
+    <input
+      type="text"
+      value={endLocation}
+      onChange={(e) => setEndLocation(e.target.value)}
+      className="w-full p-2 border rounded"
+      placeholder="उदाहरण: शिवाजीनगर"
+    />
+  </div>
+
+  <div>
+    <label>गाडीचा प्रकार:</label>
+    <div className="flex space-x-2 mt-2">
+      {Object.entries(vehicleTypes).map(([seats, label]) => (
         <button
-          className="w-full bg-orange-700 text-white hover:bg-orange-800 p-2 rounded"
-          onClick={calculateDistance}
+          key={seats}
+          className={`px-3 py-1 border rounded ${vehicleType === seats ? 'bg-blue-500 text-white' : ''}`}
+          onClick={() => setVehicleType(seats)}
         >
-          भाडा मोजा
+          {label}
         </button>
+      ))}
+    </div>
+  </div>
 
-        <div className="text-center text-xl font-semibold text-orange-900">
-          {fare > 0 && (
-            <>
-              अंदाजे अंतर: {distance.toFixed(2)} किमी <br />
-              तुमचा अंदाजे भाडा: ₹{fare.toFixed(0)}
-            </>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
+  <button
+    onClick={handleCalculate}
+    className="bg-green-600 text-white px-4 py-2 rounded shadow"
+  >
+    भाडा मोजा
+  </button>
+
+  {loading && <p>थांबा... गणना होते आहे</p>}
+  {fare !== null && <p className="text-xl font-semibold">एकूण भाडा: ₹{fare}</p>}
+  {error && <p className="text-red-600">त्रुटी: {error}</p>}
+</div>
+
+); }
+
+   
