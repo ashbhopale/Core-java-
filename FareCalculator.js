@@ -1,4 +1,5 @@
-// FareCalculator.js import { useState } from 'react';
+// FareCalculator.js 
+import { useState } from 'react';
 
 export default function FareCalculator() { const [startLocation, setStartLocation] = useState(''); const [endLocation, setEndLocation] = useState(''); const [vehicleType, setVehicleType] = useState(null); const [fare, setFare] = useState(null); const [loading, setLoading] = useState(false); const [error, setError] = useState('');
 
